@@ -31,15 +31,27 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install mlflow google-api-python-client google-auth-httplib2 google-auth-oauthlib
+          pip install mlflow
 
       - name: Run mlflow project
         run: |
           mlflow run Latihan-CI --env-manager=local
 
-      # SELESAI TRAINING, LANGSUNG UPLOAD KE GOOGLE DRIVE
-      - name: Upload hasil ke Google Drive
-        env:
-          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
+      # LANGKAH AKTIVASI BAGASI FILE BESAR (GIT LFS)
+      - name: Set up Git LFS
         run: |
-          python upload_drive.py
+          git config --global user.name "${{ secrets.username }}"
+          git config --global user.email "${{ secrets.email }}"
+          git lfs install
+          git lfs track "mlruns/**"
+          git add .gitattributes
+          git commit -m "Track large files in mlruns with Git LFS" || true
+
+      # PROSES COMMIT & PUSH FOLDER MLRUNS KE GITHUB
+      - name: Save mlruns to repo
+        run: |
+          git config --global user.name "${{ secrets.username }}"
+          git config --global user.email "${{ secrets.email }}"
+          git add -f mlruns/
+          git commit -m "Save mlruns from CI run" || true
+          git push origin main
